@@ -1,0 +1,12 @@
+{
+  "name": "control-room",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node tests/workspace.test.mjs && node tests/dispatcher.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

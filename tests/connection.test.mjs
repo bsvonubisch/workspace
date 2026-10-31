@@ -14,3 +14,9 @@ assert.equal(badge.textContent,'● Codex connected');assert.match(button.innerH
 const before=calls;release=true;const first=vm.runInContext('checkConnection()',c);const second=vm.runInContext('checkConnection()',c);assert.equal(calls,before+1);release();await Promise.all([first,second]);release=null;
 vm.runInContext("location.hostname='control-room.example';",c);fail=true;await vm.runInContext('checkConnection()',c);assert.match(badge.textContent,/Use local workspace/);assert.doesNotMatch(badge.textContent,/offline/i);
 console.log('PASS failed-status recovery, actionable error, coalesced checks, hosted wording, and status updates without page rerender.');
+
+// The home page has no schedule buttons. Binding must use the list selector.
+const bindStart=source.indexOf('function bindCloud(on)');
+const bindEnd=source.indexOf("\n\n$('#project-picker')",bindStart);
+vm.runInNewContext(source.slice(bindStart,bindEnd)+'\nbindCloud(()=>{});',{$:()=>null,$$:()=>[],loadCloud(){},scheduleDialog(){}});
+console.log('PASS home-page startup when no schedule buttons exist.');

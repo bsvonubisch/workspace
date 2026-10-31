@@ -11,7 +11,15 @@ let active=null;
 const cloud=await createCloudService(root,codex);
 async function readBody(req){let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>300000)throw Error('Request too large.')}try{return JSON.parse(raw)}catch{throw Error('Invalid JSON.')}}
 function json(res,status,data){if(res.destroyed)return;res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data))}
-function status(){return new Promise(resolve=>{const child=spawn(codex,['login','status'],{windowsHide:true,stdio:['ignore','pipe','pipe']});let out='';child.stdout.on('data',d=>out+=d);child.stderr.on('data',d=>out+=d);child.on('error',()=>resolve({connected:false,message:'Codex could not be started. Install Codex or set CONTROL_ROOM_CODEX_PATH.'}));child.on('close',code=>resolve({connected:code===0,message:code===0?'Codex is signed in.':'Run codex login in a terminal, then check again.'}));setTimeout(()=>{child.kill();resolve({connected:false,message:'Codex status check timed out.'})},10000).unref()})}
+function status(){return new Promise(resolve=>{
+ const child=spawn(codex,['login','status'],{windowsHide:true,stdio:['ignore','pipe','pipe']});let finished=false;
+ const finish=(connected,message)=>{if(finished)return;finished=true;clearTimeout(timer);resolve({connected,message,service:'control-room-companion'})};
+ const timer=setTimeout(()=>{child.kill();finish(false,'Codex status check timed out. Try checking again.')},10000);timer.unref();
+ child.stdout.resume();child.stderr.resume();
+ child.on('error',()=>finish(false,'Codex could not be started. Check its installation or CONTROL_ROOM_CODEX_PATH.'));
+ child.on('close',code=>finish(code===0,code===0?'Codex is signed in and ready.':'Run codex login on this computer, then retry.'));
+})}
+
 const shapes={slides:'Return ONLY a JSON object with slides: an array of 3 to 8 objects containing title (string) and body (string). Write polished, concise slide content.',whiteboard:'Return ONLY a JSON object with notes: an array of 3 to 9 objects containing text (string). Each note should be concise and useful.',app:'Return ONLY a JSON object with html (string): a complete, polished, standalone HTML app with inline CSS and JS. No external resources, network requests, storage, forms to external sites, or libraries. The app runs in a sandboxed iframe. Use accessible controls and a responsive layout.',chat:'Reply helpfully in plain text.'};
 const server=http.createServer(async(req,res)=>{try{
  if(![`127.0.0.1:${port}`,`localhost:${port}`].includes(req.headers.host)){return json(res,403,{error:'Host not allowed'})}

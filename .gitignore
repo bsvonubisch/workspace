@@ -1,0 +1,6 @@
+node_modules/
+.control-room-data/
+tests/dispatcher-test-fixture/
+*.log
+.env
+.env.*
